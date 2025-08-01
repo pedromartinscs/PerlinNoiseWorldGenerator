@@ -4653,6 +4653,16 @@ MonoBehaviour:
   previewImage: {fileID: 1903743399}
   generator: {fileID: 1365241849}
   groundPrefab: {fileID: 3097833113945764133, guid: bbb27464cb20a634d8bbbe204b61a6a8, type: 3}
+  waterPrefab: {fileID: 6685893676148418282, guid: 85ce75fa1168c4e40ab4b7fffb37f703, type: 3}
+  shoreSidePrefab: {fileID: 8994760166948256018, guid: 0600a1e9f3877e94ba6d15e4422c12b2, type: 3}
+  shoreCornerPrefab: {fileID: 8632331329120660038, guid: be6c8d4cf2c8b11409a8c3de7c9125cc, type: 3}
+  shoreTinyCornerPrefab: {fileID: 1024927570807871730, guid: fdd3dacf96d644547a75a1153275f7c0, type: 3}
+  shorePocketPrefab: {fileID: 38041524427728721, guid: 85d9eb534fe1df24e8a76991156b053f, type: 3}
+  shoreCornerExtendedPrefab: {fileID: 7577840666802888009, guid: c107340b97536f84181810bbfb72d954, type: 3}
+  shoreDoubleSidePrefab: {fileID: 1862524644159097134, guid: 40b37577fd0c2754a844d7b3e6be7b41, type: 3}
+  shoreDoubleTinyCornerPrefab: {fileID: 3417202051299261668, guid: 79c3207517fb45c45b2909af1edcdcbc, type: 3}
+  pondPrefab: {fileID: 2804620566788129082, guid: 529d7757a653ba244bb3bb9c639e55c0, type: 3}
+  shoreSideDoubleTinyCornerPrefab: {fileID: 1066256963398260783, guid: 7c405dd93f518cf47903735f04e83ed8, type: 3}
   treePrefabs:
   - {fileID: 8514844554379290507, guid: 6f4b8e5eaa9ffc742a3fb22bf9b2cdcb, type: 3}
   - {fileID: 3660764238018015281, guid: dff36450ac4d2574785ae1f950269807, type: 3}

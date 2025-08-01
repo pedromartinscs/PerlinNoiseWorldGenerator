@@ -24,6 +24,16 @@ public class UIManager : MonoBehaviour
 	
 	[Header("Map Prefabs")]
 	public GameObject groundPrefab;
+	public GameObject waterPrefab;
+	public GameObject shoreSidePrefab;
+	public GameObject shoreCornerPrefab;
+	public GameObject shoreTinyCornerPrefab;	
+	public GameObject shorePocketPrefab;
+	public GameObject shoreCornerExtendedPrefab;
+	public GameObject shoreDoubleSidePrefab;
+	public GameObject shoreDoubleTinyCornerPrefab;
+	public GameObject pondPrefab;
+	public GameObject shoreSideDoubleTinyCornerPrefab;
 	public List<GameObject> treePrefabs;
 	public List<GameObject> rockPrefabs;
 	
@@ -97,7 +107,17 @@ public class UIManager : MonoBehaviour
 			mapParent,
 			groundPrefab,
 			treePrefabs,
-			rockPrefabs
+			rockPrefabs,
+			waterPrefab,
+			shoreSidePrefab,
+			shoreCornerPrefab,
+			shoreTinyCornerPrefab,
+			shorePocketPrefab,
+			shoreCornerExtendedPrefab,
+			shoreDoubleSidePrefab,
+			shoreDoubleTinyCornerPrefab,
+			pondPrefab,
+			shoreSideDoubleTinyCornerPrefab
 		);
     }
 	
