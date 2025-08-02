@@ -99,7 +99,7 @@ public class PerlinNoiseGenerator : MonoBehaviour
 		return logicalMap;
 	}
 	
-	public void GenerateMap(int width, int height, NoiseSettings settings, Transform parent, GameObject groundPrefab, List<GameObject> treePrefabs, List<GameObject> rockPrefabs, GameObject waterPrefab, GameObject shoreSidePrefab, GameObject shoreCornerPrefab, GameObject shoreTinyCornerPrefab, GameObject shorePocketPrefab, GameObject shoreCornerExtendedPrefab, GameObject shoreDoubleSidePrefab, GameObject shoreDoubleTinyCornerPrefab, GameObject pondPrefab, GameObject shoreSideDoubleTinyCornerPrefab)
+	public void GenerateMap(int width, int height, NoiseSettings settings, Transform parent, GameObject groundPrefab, List<GameObject> treePrefabs, List<GameObject> rockPrefabs, GameObject waterPrefab, GameObject shoreSidePrefab, GameObject shoreCornerPrefab, GameObject shoreTinyCornerPrefab, GameObject shorePocketPrefab, GameObject shoreCornerExtendedPrefab, GameObject shoreDoubleSidePrefab, GameObject shoreDoubleTinyCornerPrefab, GameObject pondPrefab, GameObject shoreSideDoubleTinyCornerPrefab, Material outlineMaterial)
 	{
 		float[,] noiseMap = GenerateNoiseMap(width, height, settings);
 		TileType[,] logicalMap = GenerateLogicalMap(noiseMap, waterThreshold);
@@ -123,13 +123,17 @@ public class PerlinNoiseGenerator : MonoBehaviour
 					{
 						GameObject tree = treePrefabs[Random.Range(0, treePrefabs.Count)];
 						Quaternion rot = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
-						GameObject.Instantiate(tree, position + Vector3.up * treeYOffset, rot, parent);
+						GameObject treeInstance = Instantiate(tree, position + Vector3.up * treeYOffset, rot, parent);
+						
+						AddOutline(treeInstance, outlineMaterial);
 					}
-					else if (value > 0.5f)
+					else if (value > 0.65f)
 					{
 						GameObject rock = rockPrefabs[Random.Range(0, rockPrefabs.Count)];
 						Quaternion rot = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
-						GameObject.Instantiate(rock, position + Vector3.up * rockYOffset, rot, parent);
+						GameObject rockInstance = Instantiate(rock, position + Vector3.up * rockYOffset, rot, parent);
+						
+						AddOutline(rockInstance, outlineMaterial);
 					}
 				}
 				//The code above deals with the nightmarish water part of the map
@@ -143,6 +147,11 @@ public class PerlinNoiseGenerator : MonoBehaviour
 					bool landSE = IsLand(logicalMap, x + 1, y - 1);
 					bool landSW = IsLand(logicalMap, x - 1, y - 1);
 					bool landNW = IsLand(logicalMap, x - 1, y + 1);
+					
+					bool landOrOutOfBoundsN = IsLandOrOutOfBounds(logicalMap, x, y + 1);
+					bool landOrOutOfBoundsE = IsLandOrOutOfBounds(logicalMap, x + 1, y);
+					bool landOrOutOfBoundsS = IsLandOrOutOfBounds(logicalMap, x, y - 1);
+					bool landOrOutOfBoundsW = IsLandOrOutOfBounds(logicalMap, x - 1, y);
 					
 					bool waterN = IsWater(logicalMap, x, y + 1);
 					bool waterE = IsWater(logicalMap, x + 1, y);
@@ -173,7 +182,7 @@ public class PerlinNoiseGenerator : MonoBehaviour
 						GameObject.Instantiate(shorePocketPrefab, position, Quaternion.Euler(0, 90, 0), parent);  // West = right land
 					}
 					//Pond tile (small lake)
-					else if (landN && landE && landS && landW)
+					else if (landOrOutOfBoundsN && landOrOutOfBoundsE && landOrOutOfBoundsS && landOrOutOfBoundsW)
 					{
 						GameObject.Instantiate(pondPrefab, position, Quaternion.identity, parent);
 					}
@@ -221,35 +230,83 @@ public class PerlinNoiseGenerator : MonoBehaviour
 					else if (landSW && landSE && !landN && !landE && !landW && !landS)
 					{
 						GameObject.Instantiate(shoreDoubleTinyCornerPrefab, position, Quaternion.Euler(0, 0, 0), parent);
+						if(landNE)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 180, 0), parent);
+						}
+						if(landNW)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 90, 0), parent);
+						}
 					}
 					else if (landNW && landSW && !landN && !landE && !landS && !landW)
 					{
 						GameObject.Instantiate(shoreDoubleTinyCornerPrefab, position, Quaternion.Euler(0, 90, 0), parent);
+						if(landSE)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 270, 0), parent);
+						}
+						if(landNE)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 180, 0), parent);
+						}
 					}
 					else if (landNW && landNE && !landS && !landE && !landW && !landN)
 					{
 						GameObject.Instantiate(shoreDoubleTinyCornerPrefab, position, Quaternion.Euler(0, 180, 0), parent);
+						if(landSW)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 0, 0), parent);
+						}
+						if(landSE)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 270, 0), parent);
+						}
 					}
 					else if (landNE && landSE && !landN && !landS && !landW && !landE)
 					{
 						GameObject.Instantiate(shoreDoubleTinyCornerPrefab, position, Quaternion.Euler(0, 270, 0), parent);
+						if(landNW)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 90, 0), parent);
+						}
+						if(landSW)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 0, 0), parent);
+						}
 					}
 					//Tiny shore tile
 					else if (landNE && !landN && !landE && !landS && !landW)
 					{
 						GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 180, 0), parent);
+						if(landSW)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 0, 0), parent);
+						}
 					}
 					else if (landSE && !landS && !landE && !landN && !landW)
 					{
 						GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 270, 0), parent);
+						if(landNW)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 90, 0), parent);
+						}
 					}
 					else if (landSW && !landS && !landW && !landN && !landE)
 					{
 						GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 0, 0), parent);
+						if(landNE)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 180, 0), parent);
+						}
 					}
 					else if (landNW && !landN && !landW && !landS && !landE)
 					{
 						GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 90, 0), parent);
+						if(landSE)
+						{
+							GameObject.Instantiate(shoreTinyCornerPrefab, position, Quaternion.Euler(0, 270, 0), parent);
+						}
 					}
 					// Side shore logic (single land tile + potential diagonal tips). NOTE: Single diagonal tips don't exist in Kenneys Nature Kit, so ideally this should be modeled (by merging the prefabs as stated in the code)
 					else if (landN)
@@ -355,5 +412,43 @@ public class PerlinNoiseGenerator : MonoBehaviour
 		int width = map.GetLength(0);
 		int height = map.GetLength(1);
 		return x >= 0 && x < width && y >= 0 && y < height;
+	}
+	
+	bool IsLandOrOutOfBounds(TileType[,] map, int x, int y)
+	{
+		int width = map.GetLength(0);
+		int height = map.GetLength(1);
+		if (x < 0 || x >= width || y < 0 || y >= height)
+			return true;
+		return map[x, y] == TileType.Land;
+	}
+	
+	private void AddOutline(GameObject original, Material outlineMaterial)
+	{
+		if (outlineMaterial == null) return;
+	
+		// Duplicate the object as a child
+		GameObject outline = Instantiate(original, original.transform.position, original.transform.rotation, original.transform);
+		outline.name = original.name + "_Outline";
+	
+		// Prevent recursive behavior if this script is attached to the prefab
+		DestroyImmediate(outline.GetComponent<PerlinNoiseGenerator>());
+	
+		// Go through all renderers and replace each material with the outlineMaterial
+		var renderers = outline.GetComponentsInChildren<MeshRenderer>();
+		foreach (var r in renderers)
+		{
+			// Disable shadow casting/receiving to avoid dark blobs
+			r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+			r.receiveShadows = false;
+	
+			// Replace all materials with the outline material
+			var mats = r.sharedMaterials;
+			for (int i = 0; i < mats.Length; i++)
+			{
+				mats[i] = outlineMaterial;
+			}
+			r.sharedMaterials = mats;
+		}
 	}
 }

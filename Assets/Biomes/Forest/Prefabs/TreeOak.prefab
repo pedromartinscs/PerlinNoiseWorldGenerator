@@ -48,6 +48,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: cf34e4ce075754b4c8b5ff6b6f4112ea, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ed8bfae28d57af64caa3eb99889251b7, type: 2}
+    - target: {fileID: -7511558181221131132, guid: cf34e4ce075754b4c8b5ff6b6f4112ea, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: cb80b5c18cb90734c93eb4e7604b0662, type: 2}
     - target: {fileID: 919132149155446097, guid: cf34e4ce075754b4c8b5ff6b6f4112ea, type: 3}
       propertyPath: m_Name
       value: TreeOak

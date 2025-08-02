@@ -48,6 +48,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 3b1a4ed42ac838447a0dc96b08266253, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 91a5aad345de20745815b75805dd36df, type: 2}
+    - target: {fileID: -7511558181221131132, guid: 3b1a4ed42ac838447a0dc96b08266253, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 12537e1e18724f54bb8a85120ec2a9ce, type: 2}
+    - target: {fileID: -7511558181221131132, guid: 3b1a4ed42ac838447a0dc96b08266253, type: 3}
+      propertyPath: 'm_Materials.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2100000, guid: aa2abe765093fd5439a5a6a1f4733529, type: 2}
+    - target: {fileID: -7511558181221131132, guid: 3b1a4ed42ac838447a0dc96b08266253, type: 3}
+      propertyPath: 'm_Materials.Array.data[3]'
+      value: 
+      objectReference: {fileID: 2100000, guid: de89778eb01e92d4790d8024b25927a1, type: 2}
     - target: {fileID: 919132149155446097, guid: 3b1a4ed42ac838447a0dc96b08266253, type: 3}
       propertyPath: m_Name
       value: WaterPondTile

@@ -1265,13 +1265,13 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1365241847}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
+      - m_Target: {fileID: 1365241848}
+        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
+        m_MethodName: OnRandomSeed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
@@ -2814,7 +2814,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Scale: 20'
+  m_text: 'Scale: 35'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -4668,8 +4668,6 @@ MonoBehaviour:
   - {fileID: 3660764238018015281, guid: dff36450ac4d2574785ae1f950269807, type: 3}
   - {fileID: 4409759662381711862, guid: 41bc8570fd4fd634fbc54324bde6471a, type: 3}
   - {fileID: 3287229277465815708, guid: 85aaa2a04f1f3d841b98bcf1f684cd87, type: 3}
-  - {fileID: 1932999820049888087, guid: c1f4721e9f513804e861f613c1cdec04, type: 3}
-  - {fileID: 8631864278562562799, guid: 9647ce2bfebe83445b1a0265952d53b9, type: 3}
   - {fileID: 7609116120658488299, guid: 3709b28b72c07b447ad7931c3e71544d, type: 3}
   - {fileID: 1467972845712810814, guid: 0f326aacaae0f38439f9037e93d147c1, type: 3}
   - {fileID: 7558290848263739682, guid: 9e77e2afeeba31b47b19b303a07527d2, type: 3}
@@ -4679,6 +4677,7 @@ MonoBehaviour:
   - {fileID: 363425398403101051, guid: 72e1ae36cbe06c14fb233b95605b2f13, type: 3}
   - {fileID: 3757557225871376615, guid: 45934002c85485a419b5188cc7c78642, type: 3}
   - {fileID: 8283723666722984619, guid: 27a1e6c72625e8843821dee84c15228f, type: 3}
+  outlineMaterial: {fileID: 2100000, guid: edb98dd4d190b0545a7054ace6ba7bf2, type: 2}
 --- !u!114 &1365241849
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6928,10 +6927,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 1529991636}
   m_HandleRect: {fileID: 943287197}
   m_Direction: 0
-  m_MinValue: 1
+  m_MinValue: 20
   m_MaxValue: 100
   m_WholeNumbers: 1
-  m_Value: 20
+  m_Value: 35
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

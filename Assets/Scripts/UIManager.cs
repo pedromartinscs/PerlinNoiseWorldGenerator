@@ -37,6 +37,9 @@ public class UIManager : MonoBehaviour
 	public List<GameObject> treePrefabs;
 	public List<GameObject> rockPrefabs;
 	
+	[Header("Shader Materials")]
+	public Material outlineMaterial;
+	
 	private Transform mapParent;
 
     private const int previewSize = 128;
@@ -117,7 +120,8 @@ public class UIManager : MonoBehaviour
 			shoreDoubleSidePrefab,
 			shoreDoubleTinyCornerPrefab,
 			pondPrefab,
-			shoreSideDoubleTinyCornerPrefab
+			shoreSideDoubleTinyCornerPrefab,
+			outlineMaterial
 		);
     }
 	
