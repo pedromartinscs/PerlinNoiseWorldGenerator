@@ -101,8 +101,20 @@ public class PerlinNoiseGenerator : MonoBehaviour
 	
 	public void GenerateMap(int width, int height, NoiseSettings settings, Transform parent, GameObject groundPrefab, List<GameObject> treePrefabs, List<GameObject> rockPrefabs, GameObject waterPrefab, GameObject shoreSidePrefab, GameObject shoreCornerPrefab, GameObject shoreTinyCornerPrefab, GameObject shorePocketPrefab, GameObject shoreCornerExtendedPrefab, GameObject shoreDoubleSidePrefab, GameObject shoreDoubleTinyCornerPrefab, GameObject pondPrefab, GameObject shoreSideDoubleTinyCornerPrefab, Material outlineMaterial)
 	{
-		float[,] noiseMap = GenerateNoiseMap(width, height, settings);
-		TileType[,] logicalMap = GenerateLogicalMap(noiseMap, waterThreshold);
+		NoiseSettings terrainSettings = new NoiseSettings
+		{
+			seed = settings.seed + 1,
+			scale = Mathf.Max(35f, settings.scale),
+			octaves = 3,
+			persistence = Mathf.Clamp(settings.persistence, 0.4f, 0.75f)
+		};
+
+		float[,] terrainNoiseMap = GenerateNoiseMap(width, height, terrainSettings);
+		TileType[,] logicalMap = GenerateLogicalMap(terrainNoiseMap, waterThreshold);
+		
+		
+		float[,] decorationNoiseMap = GenerateNoiseMap(width, height, settings);
+
 	
 		for (int y = 0; y < height; y++)
 		{
@@ -117,7 +129,7 @@ public class PerlinNoiseGenerator : MonoBehaviour
 					GameObject.Instantiate(groundPrefab, position, Quaternion.identity, parent);
 			
 					// Tree/rock decoration
-					float value = noiseMap[x, y];
+					float value = decorationNoiseMap[x, y];
 			
 					if (value > 0.7f)
 					{
