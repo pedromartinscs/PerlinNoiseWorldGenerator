@@ -7,15 +7,24 @@ public class CameraController : MonoBehaviour
     public Transform cam;   // MainCamera (child of pivot)
     
     public float panSpeed = 0.5f;
-    public float orbitSpeed = 3f;
     public float zoomSpeed = 10f;
     public float zoomMin = 10f;
     public float zoomMax = 80f;
-	private float currentPitch = 45f;
-	public float minPitch = 5f;  // looking slightly up
-	public float maxPitch = 80f; 
 
+	[SerializeField] float orbitSpeed = 3f;          // deg/sec
+	[SerializeField, Range(-30f, 5f)] float minPitch = -10f;     // up look limit
+	[SerializeField, Range(10f, 45f)]  float maxPitch = 40f;     // down look limit
+	[SerializeField, Range(-10f, 20f)] float startPitch = 0f;  // initial camera pitch
+	[SerializeField] bool invertOrbitY = false;
+
+	private float currentPitch = 0f;
     private Vector3 lastMousePos;
+	
+	void Start()
+	{
+		currentPitch = Mathf.Clamp(startPitch, minPitch, maxPitch);
+		pivot.localRotation = Quaternion.Euler(currentPitch, pivot.localRotation.eulerAngles.y, 0f);
+	}
 
     void Update()
     {
@@ -48,14 +57,15 @@ public class CameraController : MonoBehaviour
 		if (Input.GetMouseButton(1))
 		{
 			Vector3 delta = Input.mousePosition - lastMousePos;
-			float rotX = delta.y * orbitSpeed * Time.deltaTime;
-			float rotY = delta.x * orbitSpeed * Time.deltaTime;
-	
+			float inputY = invertOrbitY ? -delta.y : delta.y;
+		
+			float rotX = inputY * orbitSpeed * Time.deltaTime;   // degrees
+			float rotY =  delta.x * orbitSpeed * Time.deltaTime;
+		
 			currentPitch = Mathf.Clamp(currentPitch + rotX, minPitch, maxPitch);
-			pivot.localRotation = Quaternion.Euler(currentPitch, pivot.localRotation.eulerAngles.y, 0); //pitch
-			
-			pivot.Rotate(Vector3.up, rotY, Space.World);   // yaw
-	
+			pivot.localRotation = Quaternion.Euler(currentPitch, pivot.localRotation.eulerAngles.y, 0f); // pitch
+			pivot.Rotate(Vector3.up, rotY, Space.World); // yaw
+		
 			lastMousePos = Input.mousePosition;
 		}
 	}

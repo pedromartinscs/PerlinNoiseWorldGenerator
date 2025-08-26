@@ -52,8 +52,32 @@ PrefabInstance:
       propertyPath: m_Name
       value: TreePlateauDark
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: b4df1e68c2470cc41aa7db305389659a, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b4df1e68c2470cc41aa7db305389659a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3331173554811719095}
   m_SourcePrefab: {fileID: 100100000, guid: b4df1e68c2470cc41aa7db305389659a, type: 3}
+--- !u!1 &1467972845712810814 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: b4df1e68c2470cc41aa7db305389659a, type: 3}
+  m_PrefabInstance: {fileID: 1773890863088049775}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3331173554811719095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1467972845712810814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4c336e6bc4a3f64b82e1c9f1e9b3cd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

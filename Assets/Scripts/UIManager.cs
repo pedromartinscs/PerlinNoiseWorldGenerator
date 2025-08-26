@@ -15,6 +15,12 @@ public class UIManager : MonoBehaviour
 	public TextMeshProUGUI persistenceLabel;
 	public TMP_InputField mapWidthInput;
 	public TMP_InputField mapHeightInput;
+	public TMP_Dropdown waterDropdown;
+	
+	[Header("Grid")]
+	[SerializeField] private Toggle showGridToggle;
+	[SerializeField] private Color gridColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+	[SerializeField] private float gridLineThickness = 0.02f;
 
     [Header("Output")]
     public RawImage previewImage;
@@ -34,13 +40,26 @@ public class UIManager : MonoBehaviour
 	public GameObject shoreDoubleTinyCornerPrefab;
 	public GameObject pondPrefab;
 	public GameObject shoreSideDoubleTinyCornerPrefab;
-	public List<GameObject> treePrefabs;
-	public List<GameObject> rockPrefabs;
+	public GameObject biomeOverlayPrefab;
+	public List<GameObject> desertTreePrefabs;
+	public List<GameObject> desertVegetationPrefabs;
+	public List<GameObject> forestTreePrefabs;
+	public List<GameObject> forestVegetationPrefabs;
+	public List<GameObject> randomDecorationPrefabs;
 	
-	[Header("Shader Materials")]
-	public Material outlineMaterial;
+	[Header("Biomes")]
+	public BiomeChecklist biomeChecklist;
+
+
+	[Header("Materials")]
+	public Material sandMaterial;
+	public Material grassMaterial;
+	public Material grassToSandMat;
+	public Material sandToGrassMat;
 	
 	private Transform mapParent;
+	
+	private GridOverlay gridOverlay;
 
     private const int previewSize = 128;
 	
@@ -55,6 +74,7 @@ public class UIManager : MonoBehaviour
 		scaleSlider.onValueChanged.AddListener(delegate { UpdateScaleLabel(); });
 		octaveSlider.onValueChanged.AddListener(delegate { UpdateOctaveLabel(); });
 		persistenceSlider.onValueChanged.AddListener(delegate { UpdatePersistenceLabel(); });
+		if (showGridToggle != null) showGridToggle.onValueChanged.AddListener(OnShowGridChanged);
 	}
 	
 	void UpdateScaleLabel()
@@ -100,6 +120,7 @@ public class UIManager : MonoBehaviour
 		int width = GetMapWidth();
 		int height = GetMapHeight();
 		NoiseSettings settings = GetSettingsFromUI();
+		bool isRareWater = waterDropdown.value == 1;
 	
 		mapParent = new GameObject("GeneratedMap").transform;
 	
@@ -109,8 +130,8 @@ public class UIManager : MonoBehaviour
 			settings,
 			mapParent,
 			groundPrefab,
-			treePrefabs,
-			rockPrefabs,
+			forestTreePrefabs,
+			forestVegetationPrefabs,
 			waterPrefab,
 			shoreSidePrefab,
 			shoreCornerPrefab,
@@ -121,8 +142,36 @@ public class UIManager : MonoBehaviour
 			shoreDoubleTinyCornerPrefab,
 			pondPrefab,
 			shoreSideDoubleTinyCornerPrefab,
-			outlineMaterial
+			biomeChecklist != null && biomeChecklist.Forest,
+			biomeChecklist != null && biomeChecklist.Desert,
+			sandMaterial,
+			biomeOverlayPrefab,
+			grassToSandMat,
+			sandToGrassMat,
+			desertTreePrefabs,
+			desertVegetationPrefabs,
+			grassMaterial,
+			isRareWater,
+			randomDecorationPrefabs
 		);
+		
+		// ---- Build / Update Grid Overlay ----
+		if (gridOverlay != null) Destroy(gridOverlay.gameObject);
+		
+		var gridGO = new GameObject("GridOverlay");
+		gridGO.transform.SetParent(mapParent, false);
+		
+		gridOverlay = gridGO.AddComponent<GridOverlay>();
+		gridOverlay.lineColor = gridColor;
+		gridOverlay.lineThickness = gridLineThickness;
+		
+		// Use the same tile size as in PerlinNoiseGenerator
+		const float TILE_SIZE = 1f;
+		gridOverlay.Build(width, height, TILE_SIZE);
+		
+		// Respect the toggle initial state
+		bool show = showGridToggle != null && showGridToggle.isOn;
+		gridOverlay.SetVisible(show);
     }
 	
 	public void OnExit()
@@ -154,5 +203,15 @@ public class UIManager : MonoBehaviour
 	public int GetMapHeight()
 	{
 		return int.TryParse(mapHeightInput.text, out int h) ? Mathf.Clamp(h, 1, 500) : 64;
+	}
+	
+	private void OnShowGridChanged(bool on)
+	{
+		if (gridOverlay != null) gridOverlay.SetVisible(on);
+	}
+	
+	void OnDestroy()
+	{
+		if (showGridToggle != null) showGridToggle.onValueChanged.RemoveListener(OnShowGridChanged);
 	}
 }
