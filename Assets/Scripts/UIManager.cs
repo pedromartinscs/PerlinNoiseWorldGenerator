@@ -115,45 +115,56 @@ public class UIManager : MonoBehaviour
     {
         ClearPreviousMap();
 		
+		// Preview texture still works as before
 		OnGenerateNoise();
-
+		
 		int width = GetMapWidth();
 		int height = GetMapHeight();
 		NoiseSettings settings = GetSettingsFromUI();
+		
 		bool isRareWater = waterDropdown.value == 1;
-	
+		
+		// Biomes toggles (keep as-is)
+		bool enableForest = (biomeChecklist != null && biomeChecklist.Forest);
+		bool enableDesert = (biomeChecklist != null && biomeChecklist.Desert);
+		
+		// --- Phase 1: GENERATION ONLY (no spawning here)
+		MapData map = generator.BuildMap(width, height, settings, enableForest, enableDesert, isRareWater);
+		
+		// --- Phase 2: RENDERING via ChunkRenderer ---
 		mapParent = new GameObject("GeneratedMap").transform;
-	
-		generator.GenerateMap(
-			width,
-			height,
-			settings,
-			mapParent,
+		
+		var chunkRenderer = mapParent.gameObject.AddComponent<ChunkRenderer>();
+		chunkRenderer.Initialize(
+			map,
 			groundPrefab,
-			forestTreePrefabs,
-			forestVegetationPrefabs,
 			waterPrefab,
-			shoreSidePrefab,
-			shoreCornerPrefab,
-			shoreTinyCornerPrefab,
-			shorePocketPrefab,
-			shoreCornerExtendedPrefab,
-			shoreDoubleSidePrefab,
-			shoreDoubleTinyCornerPrefab,
-			pondPrefab,
-			shoreSideDoubleTinyCornerPrefab,
-			biomeChecklist != null && biomeChecklist.Forest,
-			biomeChecklist != null && biomeChecklist.Desert,
-			sandMaterial,
-			biomeOverlayPrefab,
-			grassToSandMat,
-			sandToGrassMat,
-			desertTreePrefabs,
-			desertVegetationPrefabs,
 			grassMaterial,
-			isRareWater,
-			randomDecorationPrefabs
+			sandMaterial,
+			Camera.main != null ? Camera.main.transform : Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Exclude)?.transform,
+			chunkSize: 32,        // tweak if you like
+			renderRadius: 2       // tweak if you like
 		);
+		
+		chunkRenderer.shorePrefabsByCode = BuildShorePrefabsByCode();
+		
+		chunkRenderer.forestTreePrefabs        = forestTreePrefabs?.ToArray();
+		chunkRenderer.forestVegetationPrefabs  = forestVegetationPrefabs?.ToArray();
+		chunkRenderer.desertTreePrefabs        = desertTreePrefabs?.ToArray();
+		chunkRenderer.desertVegetationPrefabs  = desertVegetationPrefabs?.ToArray();
+		chunkRenderer.randomDecorationPrefabs  = randomDecorationPrefabs?.ToArray();
+		
+		chunkRenderer.treeYOffset              = 0f;
+		chunkRenderer.vegetationYOffset        = 0f;
+		float desertTreeThreshold 			   = 0.05f;
+		float desertVegetationThreshold 	   = 0.10f;
+		if (enableForest && enableDesert)
+		{
+			desertTreeThreshold += 0.10f;
+			desertVegetationThreshold += 0.10f;
+		}
+		chunkRenderer.desertTreeThreshold      = desertTreeThreshold;
+		chunkRenderer.desertVegetationThreshold= desertVegetationThreshold;
 		
 		// ---- Build / Update Grid Overlay ----
 		if (gridOverlay != null) Destroy(gridOverlay.gameObject);
@@ -165,11 +176,9 @@ public class UIManager : MonoBehaviour
 		gridOverlay.lineColor = gridColor;
 		gridOverlay.lineThickness = gridLineThickness;
 		
-		// Use the same tile size as in PerlinNoiseGenerator
-		const float TILE_SIZE = 1f;
+		const float TILE_SIZE = 1f; // same as MapData
 		gridOverlay.Build(width, height, TILE_SIZE);
 		
-		// Respect the toggle initial state
 		bool show = showGridToggle != null && showGridToggle.isOn;
 		gridOverlay.SetVisible(show);
     }
@@ -194,6 +203,32 @@ public class UIManager : MonoBehaviour
 
         return settings;
     }
+	
+	private GameObject[] BuildShorePrefabsByCode()
+	{
+		// Indices must match the codes used in EvaluateShore(...)
+		// 0 pondPrefab
+		// 1 shorePocketPrefab
+		// 2 shoreDoubleSidePrefab
+		// 3 shoreCornerPrefab
+		// 4 shoreCornerExtendedPrefab
+		// 5 shoreDoubleTinyCornerPrefab
+		// 6 shoreTinyCornerPrefab
+		// 7 shoreSidePrefab
+		// 8 shoreSideDoubleTinyCornerPrefab
+		return new GameObject[]
+		{
+			pondPrefab,
+			shorePocketPrefab,
+			shoreDoubleSidePrefab,
+			shoreCornerPrefab,
+			shoreCornerExtendedPrefab,
+			shoreDoubleTinyCornerPrefab,
+			shoreTinyCornerPrefab,
+			shoreSidePrefab,
+			shoreSideDoubleTinyCornerPrefab
+		};
+	}
 	
 	public int GetMapWidth()
 	{

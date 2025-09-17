@@ -589,6 +589,55 @@ public class PerlinNoiseGenerator : MonoBehaviour
 		SpawnBiomeBorderOverlays(biomeMap, TILE_SIZE, parent, biomeOverlayPrefab, grassToSandMat, sandToGrassMat, enableForest, enableDesert);
 	}
 	
+	public MapData BuildMap(int width, int height, NoiseSettings settings,
+							bool enableForest, bool enableDesert, bool isRareWater)
+	{
+		// --- Legacy terrain tweaks (same as old GenerateMap) ---
+		NoiseSettings terrainSettings = new NoiseSettings
+		{
+			seed        = settings.seed + 1,
+			scale       = Mathf.Max(35f, settings.scale),
+			octaves     = 3,
+			persistence = Mathf.Clamp(settings.persistence, 0.40f, 0.75f)
+		};
+	
+		float waterThreshold = isRareWater ? 0.10f : 0.30f;
+	
+		// A) Terrain classification uses the tweaked settings
+		float[,] terrainNoiseMap = GenerateNoiseMap(width, height, terrainSettings);
+		TileType[,] logicalMap   = GenerateLogicalMap(terrainNoiseMap, waterThreshold);
+	
+		// Biomes still use the raw UI settings (as before)
+		BiomeType[,] biomeMap = BuildBiomeMap(width, height, settings, logicalMap, enableForest, enableDesert);
+	
+		// B) Decorations use the raw UI settings (legacy 'decorationNoiseMap')
+		float[,] decorationNoiseMap = GenerateNoiseMap(width, height, settings);
+	
+		// Map container (seed = UI seed for deterministic RNG elsewhere)
+		var map = new MapData(width, height, 1f, settings.seed);
+	
+		for (int y = 0; y < height; y++)
+		{
+			for (int x = 0; x < width; x++)
+			{
+				map[x, y] = new Cell
+				{
+					tile  = logicalMap[x, y],
+					biome = biomeMap[x, y]
+				};
+	
+				// Store the exact per-tile value the legacy rules used for decorations
+				map.SetFeatureValue(x, y, Mathf.Clamp01(decorationNoiseMap[x, y]));
+			}
+		}
+	
+		// Precompute shores using the same legacy logic (already ported)
+		PrecomputeShores(map, logicalMap);
+	
+		// Decorations are placed at render time with legacy rules (no precompute here)
+		return map;
+	}
+	
 	private bool IsLand(TileType[,] map, int x, int y)
 	{
 		int width = map.GetLength(0);
@@ -607,6 +656,346 @@ public class PerlinNoiseGenerator : MonoBehaviour
 			return false;
 	
 		return map[x, y] == TileType.Water;
+	}
+	
+	private void PrecomputeShores(MapData map, TileType[,] logicalMap)
+	{
+		int w = map.width, h = map.height;
+	
+		for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++)
+		{
+			if (logicalMap[x, y] == TileType.Water)
+			{
+				// Use your Step-2 function:
+				var pieces = EvaluateShore(x, y, logicalMap); // List<ShoreInfo>
+				map.SetShores(x, y, pieces);                 // store 0..N pieces
+			}
+			else
+			{
+				// Land: ensure empty
+				map.SetShores(x, y, null);
+			}
+		}
+	}
+	
+	private List<ShoreInfo> EvaluateShore(int x, int y, TileType[,] logicalMap)
+	{
+		var pieces = new List<ShoreInfo>(3);
+	
+		// Only shore-evaluate WATER tiles. Land tiles return empty (renderer handles land normally).
+		if (logicalMap[x, y] != TileType.Water)
+			return pieces; // empty
+	
+		// ---- Neighbor probes (keep your original orientation: N = y+1, S = y-1) ----
+		bool landN  = IsLand(logicalMap, x,     y + 1);
+		bool landE  = IsLand(logicalMap, x + 1, y    );
+		bool landS  = IsLand(logicalMap, x,     y - 1);
+		bool landW  = IsLand(logicalMap, x - 1, y    );
+		bool landNE = IsLand(logicalMap, x + 1, y + 1);
+		bool landSE = IsLand(logicalMap, x + 1, y - 1);
+		bool landSW = IsLand(logicalMap, x - 1, y - 1);
+		bool landNW = IsLand(logicalMap, x - 1, y + 1);
+	
+		bool landOrOutOfBoundsN = IsLandOrOutOfBounds(logicalMap, x,     y + 1);
+		bool landOrOutOfBoundsE = IsLandOrOutOfBounds(logicalMap, x + 1, y    );
+		bool landOrOutOfBoundsS = IsLandOrOutOfBounds(logicalMap, x,     y - 1);
+		bool landOrOutOfBoundsW = IsLandOrOutOfBounds(logicalMap, x - 1, y    );
+	
+		bool waterN = IsWater(logicalMap, x,     y + 1);
+		bool waterE = IsWater(logicalMap, x + 1, y    );
+		bool waterS = IsWater(logicalMap, x,     y - 1);
+		bool waterW = IsWater(logicalMap, x - 1, y    );
+	
+		int waterCount = 0;
+		if (waterN) waterCount++;
+		if (waterE) waterCount++;
+		if (waterS) waterCount++;
+		if (waterW) waterCount++;
+	
+		// ---- Prefab codes (index into ChunkRenderer.shorePrefabsByCode) ----
+		const short CODE_POND                  = 0;
+		const short CODE_SHORE_POCKET          = 1;
+		const short CODE_DOUBLE_SIDE           = 2;
+		const short CODE_CORNER                = 3;
+		const short CODE_CORNER_EXT            = 4;
+		const short CODE_DOUBLE_TINY           = 5;
+		const short CODE_TINY                  = 6;
+		const short CODE_SIDE                  = 7;
+		const short CODE_SIDE_DOUBLE_TINY      = 8;
+	
+		// Small helper for adding a piece (rotation only; no offsets used in your legacy shore code)
+		void Add(short code, float rotY)
+		{
+			pieces.Add(new ShoreInfo {
+				present   = true,
+				code      = code,
+				rotationY = rotY,
+				offset    = Vector2.zero,
+				yOffset   = 0f
+			});
+		}
+	
+		// ---- U-shaped shore (pocket) ----
+		if (waterCount == 1 && waterN && IsInBounds(logicalMap, x - 1, y) && IsInBounds(logicalMap, x + 1, y))
+		{
+			Add(CODE_SHORE_POCKET, 180f); // North = bottom land
+			return pieces;
+		}
+		else if (waterCount == 1 && waterE && IsInBounds(logicalMap, x, y - 1) && IsInBounds(logicalMap, x, y + 1))
+		{
+			Add(CODE_SHORE_POCKET, 270f); // East = left land
+			return pieces;
+		}
+		else if (waterCount == 1 && waterS && IsInBounds(logicalMap, x - 1, y) && IsInBounds(logicalMap, x + 1, y))
+		{
+			Add(CODE_SHORE_POCKET, 0f);   // South = top land
+			return pieces;
+		}
+		else if (waterCount == 1 && waterW && IsInBounds(logicalMap, x, y - 1) && IsInBounds(logicalMap, x, y + 1))
+		{
+			Add(CODE_SHORE_POCKET, 90f);  // West = right land
+			return pieces;
+		}
+	
+		// ---- Pond (small lake) ----
+		if (landOrOutOfBoundsN && landOrOutOfBoundsE && landOrOutOfBoundsS && landOrOutOfBoundsW)
+		{
+			Add(CODE_POND, 0f);
+			return pieces;
+		}
+	
+		// ---- Double-side shore (water opposite sides, land on others) ----
+		if (waterN && waterS && landW && landE)
+		{
+			Add(CODE_DOUBLE_SIDE, 0f);    // vertical channel
+			return pieces;
+		}
+		if (waterW && waterE && landN && landS)
+		{
+			Add(CODE_DOUBLE_SIDE, 90f);   // horizontal channel
+			return pieces;
+		}
+	
+		// ---- Corner shore placement (2 adjacent land tiles) ----
+		if (landN && landE)
+		{
+			if (landSW) Add(CODE_CORNER_EXT, 90f);
+			else        Add(CODE_CORNER,     90f);
+			return pieces;
+		}
+		if (landE && landS)
+		{
+			if (landNW) Add(CODE_CORNER_EXT, 180f);
+			else        Add(CODE_CORNER,     180f);
+			return pieces;
+		}
+		if (landS && landW)
+		{
+			if (landNE) Add(CODE_CORNER_EXT, 270f);
+			else        Add(CODE_CORNER,     270f);
+			return pieces;
+		}
+		if (landW && landN)
+		{
+			if (landSE) Add(CODE_CORNER_EXT, 0f);
+			else        Add(CODE_CORNER,     0f);
+			return pieces;
+		}
+	
+		// ---- Double tiny shore tile (plus optional extra tinies) ----
+		if (landSW && landSE && !landN && !landE && !landW && !landS)
+		{
+			Add(CODE_DOUBLE_TINY, 0f);
+			if (landNE) Add(CODE_TINY, 180f);
+			if (landNW) Add(CODE_TINY, 90f);
+			return pieces;
+		}
+		if (landNW && landSW && !landN && !landE && !landS && !landW)
+		{
+			Add(CODE_DOUBLE_TINY, 90f);
+			if (landSE) Add(CODE_TINY, 270f);
+			if (landNE) Add(CODE_TINY, 180f);
+			return pieces;
+		}
+		if (landNW && landNE && !landS && !landE && !landW && !landN)
+		{
+			Add(CODE_DOUBLE_TINY, 180f);
+			if (landSW) Add(CODE_TINY, 0f);
+			if (landSE) Add(CODE_TINY, 270f);
+			return pieces;
+		}
+		if (landNE && landSE && !landN && !landS && !landW && !landE)
+		{
+			Add(CODE_DOUBLE_TINY, 270f);
+			if (landNW) Add(CODE_TINY, 90f);
+			if (landSW) Add(CODE_TINY, 0f);
+			return pieces;
+		}
+	
+		// ---- Tiny shore tile (single diagonal; optional opposite extra) ----
+		if (landNE && !landN && !landE && !landS && !landW)
+		{
+			Add(CODE_TINY, 180f);
+			if (landSW) Add(CODE_TINY, 0f);
+			return pieces;
+		}
+		if (landSE && !landS && !landE && !landN && !landW)
+		{
+			Add(CODE_TINY, 270f);
+			if (landNW) Add(CODE_TINY, 90f);
+			return pieces;
+		}
+		if (landSW && !landS && !landW && !landN && !landE)
+		{
+			Add(CODE_TINY, 0f);
+			if (landNE) Add(CODE_TINY, 180f);
+			return pieces;
+		}
+		if (landNW && !landN && !landW && !landS && !landE)
+		{
+			Add(CODE_TINY, 90f);
+			if (landSE) Add(CODE_TINY, 270f);
+			return pieces;
+		}
+	
+		// ---- Side shore logic (single cardinal land + potential diagonal tips) ----
+		if (landN)
+		{
+			if (landSW && landSE && waterS)
+			{
+				Add(CODE_SIDE_DOUBLE_TINY, 0f);
+			}
+			else
+			{
+				Add(CODE_SIDE, 0f);
+				if (landSW && waterS && !landSE)      Add(CODE_TINY, 0f);
+				else if (landSE && waterS && !landSW) Add(CODE_TINY, 270f);
+			}
+			return pieces;
+		}
+		if (landE)
+		{
+			if (landNW && landSW && waterW)
+			{
+				Add(CODE_SIDE_DOUBLE_TINY, 90f);
+			}
+			else
+			{
+				Add(CODE_SIDE, 90f);
+				if (landNW && waterW && !landSW)      Add(CODE_TINY, 90f);
+				else if (landSW && waterW && !landNW) Add(CODE_TINY, 0f);
+			}
+			return pieces;
+		}
+		if (landS)
+		{
+			if (landNW && landNE && waterN)
+			{
+				Add(CODE_SIDE_DOUBLE_TINY, 180f);
+			}
+			else
+			{
+				Add(CODE_SIDE, 180f);
+				if (landNW && waterN && !landNE)      Add(CODE_TINY, 90f);
+				else if (landNE && waterN && !landNW) Add(CODE_TINY, 180f);
+			}
+			return pieces;
+		}
+		if (landW)
+		{
+			if (landNE && landSE && waterE)
+			{
+				Add(CODE_SIDE_DOUBLE_TINY, 270f);
+			}
+			else
+			{
+				Add(CODE_SIDE, 270f);
+				if (landNE && waterE && !landSE)      Add(CODE_TINY, 180f);
+				else if (landSE && waterE && !landNE) Add(CODE_TINY, 270f);
+			}
+			return pieces;
+		}
+	
+		// ---- Default: regular water (no shore piece) ----
+		// (Renderer will spawn base water tile when list is empty.)
+		return pieces;
+	}
+	
+	//Function to generate, deterministically, "random" numbers for the orientation of objects so the map has consistency
+	private static float R01(int x, int y, int seed, uint salt)
+	{
+		unchecked
+		{
+			uint h = (uint)x;
+			h = (h * 0x9E3779B9u) ^ (uint)y;
+			h ^= (uint)seed * 0x85EBCA6Bu;
+			h ^= salt;
+			h ^= h >> 16; h *= 0x7FEB352Du;
+			h ^= h >> 15; h *= 0x846CA68Bu;
+			h ^= h >> 16;
+			return (h & 0x00FFFFFF) / 16777216f; // 2^24
+		}
+	}
+	
+	private void PrecomputeDecorations(MapData map)
+	{
+		// simple defaults — tweak later in UI if you want
+		const float forestDensity = 0.15f;
+		const float desertDensity = 0.05f;
+		const float jitterMaxX = 0.30f;
+		const float jitterMaxZ = 0.30f;
+		const float yOffset = 0f;               // raise if your props clip into ground
+		const float scaleMin = 0.9f;
+		const float scaleMax = 1.2f;
+		const int   maxPerTile = 1;             // keep cheap for now
+	
+		int w = map.width, h = map.height;
+	
+		for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++)
+		{
+			var cell = map[x, y];
+			if (cell.tile != TileType.Land)
+			{
+				map.SetDecos(x, y, null); // none on water
+				continue;
+			}
+	
+			float density = (cell.biome == BiomeType.Forest) ? forestDensity : desertDensity;
+			var list = map.GetDecos(x, y);
+			list.Clear();
+	
+			// Decide how many to place (0..maxPerTile)
+			float rPlace = R01(x, y, map.seed, 0xA53F9E2Du);
+			if (rPlace >= density) { /* leave empty */ map.SetDecos(x, y, list); continue; }
+	
+			int count = 1; // could do: int count = 1 + (R01(...)<extraProb ? 1 : 0);
+			count = Mathf.Min(count, maxPerTile);
+	
+			for (int i = 0; i < count; i++)
+			{
+				float rx = (R01(x, y, map.seed, 0x85EBCA6Bu) * 2f - 1f) * jitterMaxX;
+				float rz = (R01(x, y, map.seed, 0x165667B1u) * 2f - 1f) * jitterMaxZ;
+				float yaw = R01(x, y, map.seed, 0x27D4EB2Fu) * 360f;
+				float scl = Mathf.Lerp(scaleMin, scaleMax, R01(x, y, map.seed, 0xC2B2AE35u));
+	
+				// choose prefab index deterministically; the renderer will pick the array by biome
+				short code = (short)Mathf.RoundToInt(R01(x, y, map.seed, 0x9E3779B9u) * 1000f); // big range now, clamp in renderer
+	
+				list.Add(new DecoInfo
+				{
+					present = true,
+					code = code,
+					rotationY = yaw,
+					scale = scl,
+					offset = new Vector2(rx, rz),
+					yOffset = yOffset
+				});
+			}
+	
+			map.SetDecos(x, y, list);
+		}
 	}
 	
 	private bool IsInBounds(TileType[,] map, int x, int y)
