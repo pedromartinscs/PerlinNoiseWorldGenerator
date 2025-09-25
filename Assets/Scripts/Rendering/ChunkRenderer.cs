@@ -23,6 +23,15 @@ public class ChunkRenderer : MonoBehaviour
 	public GameObject[] desertVegetationPrefabs;
 	public GameObject[] randomDecorationPrefabs;
 	
+	// === Biome border overlay ===
+	[Header("Biome Border Overlay")]
+	public Material biomeOverlayMaterial;
+	public GameObject biomeOverlayPrefab;
+	[Range(0.01f, 0.5f)] public float biomeBorderWidth = 0.35f;   // visual thickness in tile units
+	[Range(0f, 0.05f)]  public float biomeBorderYOffset = 0.012f; // to prevent z-fighting
+	public bool drawBiomeBorders = true;
+	static Mesh s_OverlayQuad;
+	
 	[Header("Shorelines (precomputed)")]
 	public GameObject[] shorePrefabsByCode;
 
@@ -174,6 +183,10 @@ public class ChunkRenderer : MonoBehaviour
 							Vector3 piecePos = cellPos + new Vector3(s.offset.x * ts, s.yOffset, s.offset.y * ts);
 							var rot = Quaternion.Euler(0f, s.rotationY, 0f);
 							Instantiate(prefab, piecePos, rot, root);
+							if (cell.biome == BiomeType.Desert && sandMaterial != null)
+							{
+								OverrideAllMaterials(prefab, sandMaterial);
+							}
 						}
 					}
 					else
@@ -194,6 +207,7 @@ public class ChunkRenderer : MonoBehaviour
 						{
 							rend.sharedMaterial = (cell.biome == BiomeType.Desert) ? sandMaterial : grassMaterial;
 						}
+						AddBiomeBorders(go.transform, x, y);
 						PlaceLegacyDecoration(cell, x, y, cellPos, root);
 					}
 				}
@@ -305,6 +319,20 @@ public class ChunkRenderer : MonoBehaviour
 			}
 		}
 	}
+	
+	private void OverrideAllMaterials(GameObject go, Material mat)
+	{
+		if (!go || !mat) return;
+	
+		var renderers = go.GetComponentsInChildren<Renderer>();
+		foreach (var r in renderers)
+		{
+			var mats = r.sharedMaterials;
+			for (int i = 0; i < mats.Length; i++)
+				mats[i] = mat;
+			r.sharedMaterials = mats;
+		}
+	}
 
     private void DestroyChunk(Vector2Int chunk)
     {
@@ -315,4 +343,151 @@ public class ChunkRenderer : MonoBehaviour
         chunkRoots.Remove(chunk);
         active.Remove(chunk);
     }
+	
+	static void EnsureOverlayQuad()
+	{
+		if (s_OverlayQuad != null) return;
+	
+		var m = new Mesh { name = "OverlayQuad_XZ_Unit" };
+		var v = new Vector3[]
+		{
+			new(-0.5f, 0f, -0.5f),
+			new( 0.5f, 0f, -0.5f),
+			new( 0.5f, 0f,  0.5f),
+			new(-0.5f, 0f,  0.5f)
+		};
+		var uv = new Vector2[]
+		{
+			new(0f,0f), new(1f,0f), new(1f,1f), new(0f,1f)
+		};
+		var tris = new int[] { 0, 2, 1, 0, 3, 2 };
+		m.SetVertices(v);
+		m.SetUVs(0, uv);
+		m.SetTriangles(tris, 0, true);
+		m.RecalculateNormals();
+		m.RecalculateBounds();
+		s_OverlayQuad = m;
+	}
+	
+	void AddBiomeBorders(Transform tileRoot, int x, int y)
+	{
+		if (!drawBiomeBorders || biomeOverlayMaterial == null) return;
+		EnsureOverlayQuad();
+	
+		float ts = map.tileSize;
+	
+		// Only draw on DESERT cells bordering FOREST cells (land to land)
+		var here = map[x, y];
+		if (here.tile != TileType.Land || here.biome != BiomeType.Desert) return;
+	
+		// N (0, +1), E (+1, 0), S (0, -1), W (-1, 0)
+		TryAddEdge(tileRoot, x, y,  0, +1, BorderDir.North, ts);
+		TryAddEdge(tileRoot, x, y, +1,  0, BorderDir.East,  ts);
+		TryAddEdge(tileRoot, x, y,  0, -1, BorderDir.South, ts);
+		TryAddEdge(tileRoot, x, y, -1,  0, BorderDir.West,  ts);
+	}
+	
+	enum BorderDir { North, East, South, West }
+	
+	void TryAddEdge(Transform tileRoot, int x, int y, int dx, int dy, BorderDir dir, float ts)
+	{
+		int nx = x + dx, ny = y + dy;
+		if (nx < 0 || ny < 0 || nx >= map.width || ny >= map.height) return;
+	
+		var here = map[x, y];
+		var there = map[nx, ny];
+	
+		// Only between different biomes, both land; neighbor must be FOREST
+		if (there.tile != TileType.Land) return;
+		if (here.biome == there.biome)   return;
+		if (there.biome != BiomeType.Forest) return;
+	
+		CreateBorderStrip(tileRoot, dir, ts);
+	}
+	
+	void CreateBorderStrip(Transform tileRoot, BorderDir dir, float ts)
+	{
+		// width: <=1 = % of tile, >1 = world units
+		float widthWorld  = (biomeBorderWidth <= 1f)
+			? Mathf.Clamp01(biomeBorderWidth) * ts
+			: Mathf.Clamp(biomeBorderWidth, 0.001f, ts * 0.5f);
+		float lengthWorld = ts;
+		float half = 0.5f * ts;
+	
+		// top of the ground (so it never buries)
+		var rend = tileRoot.GetComponentInChildren<Renderer>();
+		float topY = rend ? rend.bounds.max.y : tileRoot.position.y;
+	
+		// CENTER ON THE EDGE (no ± width/2 anymore)
+		Vector3 edgeCenter = dir switch
+		{
+			BorderDir.North => new Vector3(0f, 0f, +half),
+			BorderDir.South => new Vector3(0f, 0f, -half),
+			BorderDir.East  => new Vector3(+half, 0f, 0f),
+			_               => new Vector3(-half, 0f, 0f),
+		};
+	
+		Vector3 worldPos = tileRoot.position
+						+ edgeCenter
+						+ Vector3.up * (topY - tileRoot.position.y + biomeBorderYOffset);
+	
+		// old mapping: local Z = Up, local Y = Along edge, local X = Across
+		Vector3 right = dir switch
+		{
+			BorderDir.North => Vector3.forward,
+			BorderDir.South => Vector3.back,
+			BorderDir.East  => Vector3.right,
+			_               => Vector3.left,
+		};
+		Vector3 along = Vector3.Cross(Vector3.up, right);
+		Quaternion rot = Quaternion.LookRotation(Vector3.up, along);
+	
+		// prefer prefab (matches old shader UVs)
+		if (biomeOverlayPrefab != null)
+		{
+			var go = Instantiate(biomeOverlayPrefab, worldPos, rot, tileRoot);
+			go.name = $"BiomeBorder_{dir}";
+	
+			// convert desired world dims -> local (compensate parent scale)
+			Vector3 ps = tileRoot.lossyScale;
+			go.transform.localScale = new Vector3(
+				widthWorld  / Mathf.Max(ps.x, 1e-6f),   // across = local X
+				lengthWorld / Mathf.Max(ps.y, 1e-6f),   // along  = local Y
+				1f);
+	
+			var mr = go.GetComponent<MeshRenderer>();
+			if (mr)
+			{
+				if (biomeOverlayMaterial) mr.sharedMaterial = biomeOverlayMaterial;
+				mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+				mr.receiveShadows = false;
+	#if UNITY_2021_3_OR_NEWER
+				mr.allowOcclusionWhenDynamic = false;
+	#endif
+			}
+			return;
+		}
+	
+		// fallback: procedural XZ quad
+		EnsureOverlayQuad();
+	
+		var proc = new GameObject($"BiomeBorder_{dir}");
+		proc.transform.SetParent(tileRoot, true);
+		proc.transform.SetPositionAndRotation(worldPos, Quaternion.Euler(0f,
+			dir==BorderDir.North?0f:dir==BorderDir.East?90f:dir==BorderDir.South?180f:270f, 0f));
+	
+		var mf = proc.AddComponent<MeshFilter>();   mf.sharedMesh = s_OverlayQuad;
+		var mr2 = proc.AddComponent<MeshRenderer>(); mr2.sharedMaterial = biomeOverlayMaterial;
+		mr2.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; mr2.receiveShadows = false;
+	#if UNITY_2021_3_OR_NEWER
+		mr2.allowOcclusionWhenDynamic = false;
+	#endif
+	
+		// along = local X, across = local Z
+		Vector3 p = tileRoot.lossyScale;
+		proc.transform.localScale = new Vector3(
+			lengthWorld / Mathf.Max(p.x, 1e-6f),
+			1f,
+			widthWorld  / Mathf.Max(p.z, 1e-6f));
+	}
 }

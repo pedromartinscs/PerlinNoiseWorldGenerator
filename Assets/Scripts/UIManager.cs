@@ -165,6 +165,9 @@ public class UIManager : MonoBehaviour
 		}
 		chunkRenderer.desertTreeThreshold      = desertTreeThreshold;
 		chunkRenderer.desertVegetationThreshold= desertVegetationThreshold;
+		chunkRenderer.biomeOverlayMaterial = sandToGrassMat;
+		chunkRenderer.biomeOverlayPrefab = biomeOverlayPrefab;
+		chunkRenderer.drawBiomeBorders    = true; 
 		
 		// ---- Build / Update Grid Overlay ----
 		if (gridOverlay != null) Destroy(gridOverlay.gameObject);
