@@ -1,7 +1,7 @@
 # Unity Procedural World Generator  
 ### Deterministic Perlin Noise · Biomes · Shorelines · Chunk Streaming
 
-A Unity (C#) procedural world generation system focused on deterministic data generation, clear separation between logic and rendering, and practical performance constraints — common requirements in simulation, factory, and strategy games.
+A Unity (C#) procedural world generation system focused on deterministic data generation, clear separation between logic and rendering, and practical performance constraints.
 
 This project intentionally prioritizes systems design over visuals: reproducible worlds, predictable rules, and scalable rendering.
 
@@ -11,7 +11,7 @@ Same seed → same world, every time.
 
 ## What problem this solves
 
-Large, procedural worlds are easy to generate once — but hard to:
+Large, procedural worlds are easy to generate once, but hard to:
 - Reproduce deterministically
 - Stream efficiently
 - Extend with rules (biomes, decorations, shorelines)
