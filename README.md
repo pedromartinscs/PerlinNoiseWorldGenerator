@@ -48,37 +48,37 @@ This project demonstrates a data-first generation pipeline where:
 
 **Procedural world generation from a deterministic seed**
 
-![World generation demo](demo/demo_generate_world.gif)
+![World generation demo](Demo/demo_generate_world.gif)
 
 ---
 
 **World overview (multiple chunks loaded)**
 
-![World overview](demo/screenshot_world_overview.png)
+![World overview](Demo/screenshot_world_overview.png)
 
 ---
 
 **Chunk streaming around the camera target**
 
-![Chunk streaming](demo/demo_chunk_streaming.gif)
+![Chunk streaming](Demo/demo_chunk_streaming.gif)
 
 ---
 
 **Shoreline rendering detail (precomputed shore pieces)**
 
-![Shoreline detail](demo/screenshot_shoreline_detail.png)
+![Shoreline detail](Demo/screenshot_shoreline_detail.png)
 
 ---
 
 **Biome transition (Forest → Desert with shoreline buffer)**
 
-![Biome transition](demo/screenshot_biome_transition.png)
+![Biome transition](Demo/screenshot_biome_transition.png)
 
 ---
 
 **Determinism proof (same seed, identical result)**
 
-![Deterministic generation](demo/screenshot_deterministic_seed.png)
+![Deterministic generation](Demo/screenshot_deterministic_seed.png)
 
 ---
 
