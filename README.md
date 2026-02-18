@@ -58,12 +58,6 @@ This project demonstrates a data-first generation pipeline where:
 
 ---
 
-**Chunk streaming around the camera target**
-
-![Chunk streaming](Demo/demo_chunk_streaming.gif)
-
----
-
 **Shoreline rendering detail (precomputed shore pieces)**
 
 ![Shoreline detail](Demo/screenshot_shoreline_detail.png)
