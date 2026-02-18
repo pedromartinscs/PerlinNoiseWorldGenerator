@@ -58,12 +58,6 @@ This project demonstrates a data-first generation pipeline where:
 
 ---
 
-**Shoreline rendering detail (precomputed shore pieces)**
-
-![Shoreline detail](Demo/screenshot_shoreline_detail.png)
-
----
-
 **Biome transition (Forest → Desert with shoreline buffer)**
 
 ![Biome transition](Demo/screenshot_biome_transition.png)
